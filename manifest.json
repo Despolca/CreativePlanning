@@ -1,0 +1,11 @@
+{
+  "display_name": "Kế hoạch Sáng tác",
+  "loading_order": 200,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "author": "Zyzyzy-Dev",
+  "version": "0.5.0",
+  "homePage": "https://github.com/Despolca/CreativePlanning",
+  "auto_update": false
+}
