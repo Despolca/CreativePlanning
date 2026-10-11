@@ -1,0 +1,11 @@
+{
+  "name": "czgh-creative-planning",
+  "description": "Kế hoạch Sáng tác: Độc lập tạo và tiêm kế hoạch sáng tác cho SillyTavern",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node tests/check-syntax.mjs"
+  }
+}

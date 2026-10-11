@@ -1,0 +1,18 @@
+/* Style độc lập trong luồng: Theme chỉ sử dụng năm biến host đã quy ước. */
+*{box-sizing:border-box}html,body{margin:0;padding:0;color:var(--SmartThemeBodyColor,#28354c);font:12px var(--mainFontFamily,Arial,sans-serif);background:transparent}details{border:1px solid var(--SmartThemeBorderColor,#dce7f7);border-radius:8px;background:var(--SmartThemeBlurTintColor,#f6f9ff)}summary{cursor:pointer;padding:10px;font-weight:600}#stale{font-weight:400;opacity:.7}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:470px;overflow:auto;margin:0;padding:0 12px 12px;line-height:1.6;font-family:var(--monoFontFamily,monospace)}
+
+/* Lối vào hủy trong luồng luôn nằm ở bên phải tiêu đề, không kích hoạt mở rộng hoặc thu gọn. */
+summary{position:relative;padding-right:42px;min-height:40px}#cancel{position:absolute;right:4px;top:3px;width:34px;height:32px;border:0;border-radius:7px;background:transparent;color:inherit;font:inherit;cursor:pointer}#cancel:hover{background:#80808022}#cancel:disabled{opacity:.25;cursor:default}
+
+/* Lối vào giao diện trong luồng đồng bộ với bảng điều khiển chính, giao diện tường minh chỉ ghi đè các biến theme đã quy ước. */
+summary{padding-right:78px}#appearance{position:absolute;right:40px;top:3px;width:34px;height:32px;border:0;border-radius:7px;background:transparent;color:inherit;cursor:pointer}button svg{display:block;margin:auto;pointer-events:none}#appearance:hover{background:#80808022}
+:root[data-appearance=light]{--SmartThemeBodyColor:#23314c!important;--SmartThemeBlurTintColor:#fcfdff!important;--SmartThemeBorderColor:#dce7f7!important}
+:root[data-appearance=dark]{color-scheme:dark;--SmartThemeBodyColor:#e6edfb!important;--SmartThemeBlurTintColor:#171d29!important;--SmartThemeBorderColor:#354158!important}
+
+/* Hiệu ứng nhịp thở hai thanh dọc khi đang tạo, khôi phục thành khối vuông tĩnh sau khi dừng. */
+.is-generating svg{animation:planning-breathe 1.4s ease-in-out infinite;color:#3779fa}
+@keyframes planning-breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.48;transform:scale(.88)}}
+@media(prefers-reduced-motion:reduce){.is-generating svg{animation:none}}
+
+/* Lối vào văn bản chính thủ công và nút giao diện độc lập với thao tác mở rộng. */
+summary{padding-right:114px}#appearance{right:76px}#resume{position:absolute;right:40px;top:3px;width:34px;height:32px;border:0;border-radius:7px;background:transparent;color:inherit;cursor:pointer}#resume:disabled{opacity:.25;cursor:default}

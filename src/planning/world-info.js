@@ -1,0 +1,45 @@
+/* Entry point quét Worldbook riêng tư: Hợp nhất các nguồn được mount, công tắc cục bộ, native scanner và trạng thái thời gian độc lập. */
+import { createNativeScanner } from './native-world-scan.js?v=0.5.0';
+import { expandMacros } from './macros.js?v=0.5.0';
+import { selectInjections } from './compatibility.js?v=0.5.0';
+export const entryKey = (book, uid) => JSON.stringify([book, uid]);
+export async function scanWorldInfo({ snapshot, selection = {}, previousState = {}, tokenize, random = Math.random, serializeYaml }) {
+    const diagnostics = [], nextState = structuredClone(previousState);
+    let variables = structuredClone(snapshot.variables || { local: {}, global: {} });
+    const expand = text => {
+        const value = expandMacros(text, { snapshot, compatibilityIds: selection.compatibilityIds, variables, serializeYaml });
+        variables = value.variables; diagnostics.push(...value.diagnostics);
+        if (value.diagnostics.some(d => d.blocking)) throw new Error(value.diagnostics.filter(d => d.blocking).map(d => d.message).join('\n'));
+        return value.text;
+    };
+    const groups = { chat: [], persona: [], character: [], global: [] }, seen = new Set();
+    const bindings = { ...snapshot.bindings, global: [...(snapshot.bindings.global || []), ...(selection.extraBooks || [])] };
+    for (const scope of ['chat', 'persona', 'character', 'global']) for (const book of bindings[scope] || []) {
+        if (seen.has(book) || selection.bookOverrides?.[book] === false) continue;
+        seen.add(book);
+        if (!snapshot.books[book]) throw new Error(`Worldbook "${book}" chưa được đọc hoặc đã bị xóa.`);
+        for (const [uid, raw] of Object.entries(snapshot.books[book].entries)) {
+            const e = { order: 100, position: 0, key: [], keysecondary: [], probability: 100, ...structuredClone(raw), world: book, uid: raw.uid ?? uid };
+            e.disable = !(selection.entryOverrides?.[entryKey(book, e.uid)] ?? !e.disable);
+            if (e.disable) continue;
+            if (e.vectorized || e.automationId || e.characterFilter?.tags?.length) throw new Error(`Worldbook "${book}" entry ${e.uid} sử dụng vector, automation hoặc lọc tag, hiện chưa hỗ trợ quét cách ly, vui lòng tắt entry này.`);
+            // A stable full-data identity avoids applying stale timers to edited entries.
+            e.hash = JSON.stringify(e);
+            groups[scope].push(e);
+        }
+    }
+    const sort = list => list.sort((a, b) => b.order - a.order);
+    const strategy = snapshot.worldSettings?.world_info_character_strategy ?? 1;
+    const rest = strategy === 0 ? sort([...groups.character, ...groups.global]) : strategy === 2 ? [...sort(groups.global), ...sort(groups.character)] : [...sort(groups.character), ...sort(groups.global)];
+    const entries = [...sort(groups.chat), ...sort(groups.persona), ...rest];
+    const injection = selectInjections(snapshot, selection.compatibilityIds);
+    const context = { extensionPrompts: Object.fromEntries(injection.items.map(i => [i.key, i])), tagMap: {} };
+    const engine = createNativeScanner({ settings: snapshot.worldSettings || {}, metadata: nextState, entries, context, expand, tokenize, random, characterFile: snapshot.character?.avatar?.replace(/\.[^.]+$/, '') });
+    const history = [...snapshot.history].reverse().map(m => {
+        const text = typeof m.content === 'string' ? m.content : m.content.filter(p => p.type === 'text').map(p => p.text).join('\n');
+        return snapshot.worldSettings?.world_info_include_names && m.name ? `${m.name}: ${text}` : text;
+    });
+    const c = snapshot.character || {}, env = snapshot.macroEnvironment || {};
+    const result = await engine.scan(history, snapshot.maxContext, false, { trigger: snapshot.trigger || 'normal', personaDescription: env.persona || '', characterDescription: c.description || c.data?.description || '', characterPersonality: c.personality || c.data?.personality || '', characterDepthPrompt: c.data?.extensions?.depth_prompt?.prompt || '', scenario: c.scenario || c.data?.scenario || '', creatorNotes: c.data?.creator_notes || '' });
+    return { entries: [...result.allActivatedEntries], nextState, diagnostics, native: result, variables };
+}
